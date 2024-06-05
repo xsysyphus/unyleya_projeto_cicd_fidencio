@@ -1,75 +1,34 @@
-# ASP.NET Core (.NET Framework)
-# Build and test ASP.NET Core projects targeting the full .NET Framework.
-# Add steps that publish symbols, save build artifacts, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+# Nome da pipeline
+name: Build and Push Docker Image
 
+# Gatilhos para iniciar a pipeline
 trigger:
 - main
 
+# Pool de agentes para executar a pipeline
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
-# Command line
-# Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-
-
+# Variáveis (opcional, para customizar nomes de repositório, tags, etc.)
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  dockerRepo: 'sysyphus/unyleya_projeto_devops'
+  dockerImageTag: '$(Build.BuildId)'
 
-
-
+# Etapas da pipeline
 steps:
 
-# Command line
-# Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-
-- task: CmdLine@2
+- task: Docker@2
+  displayName: 'Login to Docker Hub'
   inputs:
-    script: 'mkdir d:\a\1\MobEAD' 
-    #workingDirectory: # Optional
-    #failOnStderr: false # Optional
+    command: login
+    containerRegistry: 'dockerhub'  # Nome da sua conexão de serviço
 
-- task: NuGetToolInstaller@1
-- task: NuGetCommand@2
+- task: Docker@2
+  displayName: 'Build and Push Image'
   inputs:
-    restoreSolution: '$(solution)'
-
-
-#- task: SonarQubePrepare@4
-#  inputs:
-#    SonarQube: 'Sonarqube Osanam Azure'
-#    scannerMode: 'CLI'
-#    configMode: 'manual'
-#    cliProjectKey: 'Unyleya_-_DevOps_Unyleya_-_DevOps'
-#    cliProjectName: 'Unyleya - DevOps'
-#    cliSources: '$(System.DefaultWorkingDirectory)'
-#
-#- powershell: |
-#    $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w/,-.]*"\,?'
-#    Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DeployIisAppPath="Default Web Site"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-#- task: SonarQubeAnalyze@4
-
-#- task: SonarQubePublish@4
-#  inputs:
-#    pollingTimeoutSec: '300'
-
-- task: PublishPipelineArtifact@1
-  inputs:
-       artifactName: # 'drop'
-
- 
-
+    command: buildAndPush
+    repository: $(dockerRepo)
+    dockerfile: '$(Build.SourcesDirectory)/Dockerfile' 
+    tags: |
+      $(dockerImageTag)
+      latest
